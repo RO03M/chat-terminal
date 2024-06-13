@@ -1,0 +1,22 @@
+[package]
+name = "chat-terminal"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+actix = "0.13.5"
+actix-web = "4.7.0"
+actix-web-actors = "4.3.0"
+serde = "1.0.203"
+serde_json = "1.0.117"
+uuid = { version = "1.8.0", features = ["v4", "serde"] }
+
+[[bin]]
+name = "server"
+path = "src/server/bin/main.rs"
+
+[[bin]]
+name = "client"
+path = "src/client/bin/main.rs"
