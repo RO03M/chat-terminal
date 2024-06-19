@@ -1,6 +1,6 @@
 use crossterm::event::{self, Event, MouseEventKind};
 use ratatui::{
-    layout::Margin,
+    layout::{Constraint, Layout, Margin},
     text::Line,
     widgets::{
         Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
@@ -40,14 +40,21 @@ impl StatefulWidget for ChatMessages {
             &mut scrollbar_state,
         );
 
-        let foo: Vec<Line> = state
+        let layout = Layout::vertical([Constraint::Fill(1), Constraint::Percentage(10)]);
+        let [list_area, input_area] = layout.areas(area);
+
+        let messages: Vec<Line> = state
             .messages
             .iter()
             .map(|message| Line::from(message.to_string()))
             .collect();
-        Paragraph::new(foo)
+        Paragraph::new(messages)
             .block(Block::new().borders(Borders::ALL))
             .scroll((state.vertical_scroll as u16, 0))
-            .render(area, buf);
+            .render(list_area, buf);
+
+        Paragraph::new("niput?")
+            .block(Block::new().title("Type your message").borders(Borders::ALL))
+            .render(input_area, buf);
     }
 }
