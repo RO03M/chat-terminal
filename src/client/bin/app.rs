@@ -26,6 +26,7 @@ use ratatui::{
     Frame, Terminal,
 };
 use tokio_tungstenite::connect_async;
+use tungstenite::Message;
 
 type Tui = Terminal<CrosstermBackend<Stdout>>;
 
@@ -51,14 +52,32 @@ impl App {
     pub async fn run(&mut self) {
         let mut terminal = App::init().unwrap();
 
+        let (ws_stream, response) = connect_async("ws://localhost:8080/chat")
+        .await
+        .expect("Failed to connect");
+
+        let (mut write, mut read) = ws_stream.split();
+
         while self.running {
             terminal
                 .draw(|frame| {
                     self.handle_render(frame);
                 })
                 .expect("Failed to render");
-
-            self.handle_events();
+            tokio::select! {
+                received = read.next() => {
+                    // println!("{:?}", received.unwrap());
+                    let received = received.unwrap();
+                    let message = received.unwrap();
+                    match message {
+                        Message::Text(text) => {
+                            self.chat.add_message(text);
+                        },
+                        _ => {}
+                    }
+                }
+                _ = self.handle_events() => {}
+            }
         }
 
         App::restore(&mut terminal);
@@ -72,9 +91,9 @@ impl App {
         frame.render_widget(&self.chat, frame.size());
     }
 
-    fn handle_events(&mut self) -> Result<(), ()> {
-        match event::poll(Duration::from_millis(100)) {
-            Ok(..) => match event::read().unwrap() {
+    async fn handle_events(&mut self) -> io::Result<bool> {
+        if event::poll(Duration::from_millis(100))? {
+            match event::read().unwrap() {
                 Event::Key(key_event) => {
                     if key_event.kind == KeyEventKind::Press {
                         self.on_key_press(key_event);
@@ -89,14 +108,37 @@ impl App {
                     }
                     _ => {}
                 },
-                _ => {
-                    println!("t");
-                }
-            },
-            _ => {}
-        }
+                _ => {}
+            }
 
-        Ok(())
+            return Ok(true);
+        } else {
+            return Ok(false);
+        }
+        // match event::poll(Duration::from_millis(100)) {
+        //     Ok(..) => match event::read().unwrap() {
+        //         Event::Key(key_event) => {
+        //             if key_event.kind == KeyEventKind::Press {
+        //                 self.on_key_press(key_event);
+        //             }
+        //         }
+        //         Event::Mouse(mouse_event) => match mouse_event.kind {
+        //             MouseEventKind::ScrollUp => {
+        //                 self.chat.on_scroll_up();
+        //             }
+        //             MouseEventKind::ScrollDown => {
+        //                 self.chat.on_scroll_down();
+        //             }
+        //             _ => {}
+        //         },
+        //         _ => {
+        //             println!("t");
+        //         }
+        //     },
+        //     _ => {}
+        // }
+
+        // Ok(())
     }
 
     fn on_key_press(&mut self, key_event: KeyEvent) {
