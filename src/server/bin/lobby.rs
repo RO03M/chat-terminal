@@ -7,12 +7,12 @@ use crate::messages::{Connect, Disconnect, LobbyMessage, Text};
 
 pub struct Lobby {
     sessions: HashMap<Uuid, Recipient<Text>>,
-    rooms: HashMap<Uuid, HashSet<Uuid>>
+    rooms: HashMap<Uuid, HashSet<Uuid>>,
 }
 
 impl Lobby {
     fn send_message_to_session(&self, message: &str, session_id: &Uuid) {
-        if let Some(target_socket) = self.sessions.get(session_id){
+        if let Some(target_socket) = self.sessions.get(session_id) {
             let _ = target_socket.do_send(Text(message.into()));
         } else {
             println!("Couldn't find target");
@@ -24,7 +24,7 @@ impl Default for Lobby {
     fn default() -> Self {
         Self {
             rooms: HashMap::new(),
-            sessions: HashMap::new()
+            sessions: HashMap::new(),
         }
     }
 }
@@ -39,9 +39,12 @@ impl Handler<Connect> for Lobby {
     fn handle(&mut self, new_session_data: Connect, ctx: &mut Self::Context) -> Self::Result {
         println!("{new_session_data:?}");
 
-        new_session_data.recipient.do_send(Text("Bem vindo ao lobby!!".into()));
+        new_session_data
+            .recipient
+            .do_send(Text("Bem vindo ao lobby!!".into()));
 
-        self.sessions.insert(new_session_data.session_id, new_session_data.recipient);
+        self.sessions
+            .insert(new_session_data.session_id, new_session_data.recipient);
     }
 }
 

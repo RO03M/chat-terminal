@@ -4,18 +4,21 @@ use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Running, StreamHan
 use actix_web_actors::ws;
 use uuid::Uuid;
 
-use crate::{lobby::Lobby, messages::{Connect, Disconnect, LobbyMessage, Text}};
+use crate::{
+    lobby::Lobby,
+    messages::{Connect, Disconnect, LobbyMessage, Text},
+};
 
 pub struct WsConnection {
     lobby_addr: Addr<Lobby>,
-    id: Uuid
+    id: Uuid,
 }
 
 impl WsConnection {
     pub fn new(lobby_addr: Addr<Lobby>) -> Self {
         Self {
             lobby_addr,
-            id: Uuid::new_v4()
+            id: Uuid::new_v4(),
         }
     }
 
@@ -33,17 +36,17 @@ impl Actor for WsConnection {
         println!("New connection!");
 
         let addr = ctx.address();
-        
+
         self.lobby_addr.do_send(Connect {
             lobby_id: Uuid::new_v4(),
             recipient: addr.recipient(),
-            session_id: self.id
+            session_id: self.id,
         })
     }
 
     fn stopping(&mut self, ctx: &mut Self::Context) -> actix::Running {
         self.lobby_addr.do_send(Disconnect {
-            session_id: self.id
+            session_id: self.id,
         });
 
         Running::Stop
@@ -57,16 +60,16 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsConnection {
                 println!("Session {} closed", self.id);
                 ctx.close(None);
                 ctx.stop();
-            },
+            }
             Ok(ws::Message::Text(text)) => {
                 self.lobby_addr.do_send(LobbyMessage {
                     message: text.clone().into(),
-                    session_id: self.id 
+                    session_id: self.id,
                 });
                 println!("{}", text);
-            },
+            }
             Ok(_) => todo!("Implement"),
-            Err(_) => println!("Failed to handle the message")
+            Err(_) => println!("Failed to handle the message"),
         }
     }
 }

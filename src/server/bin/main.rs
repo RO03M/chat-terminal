@@ -1,14 +1,18 @@
 use std::sync::Mutex;
 
 use actix::{Actor, Addr};
-use actix_web::{get, web::{self, Data, Payload}, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
+use actix_web::{
+    get,
+    web::{self, Data, Payload},
+    App, Error, HttpRequest, HttpResponse, HttpServer, Responder,
+};
 use actix_web_actors::ws;
 use lobby::Lobby;
 use socket::WsConnection;
 
 mod lobby;
-mod socket;
 mod messages;
+mod socket;
 
 #[get("/")]
 async fn index() -> impl Responder {
@@ -19,7 +23,7 @@ async fn index() -> impl Responder {
 async fn chat_connection(
     request: HttpRequest,
     stream: Payload,
-    main_lobby: Data<Addr<Lobby>>
+    main_lobby: Data<Addr<Lobby>>,
 ) -> Result<HttpResponse, Error> {
     println!("{main_lobby:?}");
 
@@ -39,8 +43,8 @@ async fn main() -> std::io::Result<()> {
             .service(index)
             .service(chat_connection)
             .app_data(Data::clone(&main_lobby))
-            // .route("/{group_id}", web::get().to(start_connection))
-            // .route("/", web::get().to(index))
+        // .route("/{group_id}", web::get().to(start_connection))
+        // .route("/", web::get().to(index))
     })
     .bind(("127.0.0.1", 8080))?
     .run()
