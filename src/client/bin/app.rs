@@ -3,7 +3,7 @@ use std::{
     time::Duration,
 };
 
-use crate::chat::ui::Chat;
+use crate::chat::chat::Chat;
 use crossterm::{
     event::{
         self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent,
@@ -19,8 +19,6 @@ use ratatui::{
 };
 use tokio_tungstenite::connect_async;
 use tungstenite::Message;
-
-type Tui = Terminal<CrosstermBackend<Stdout>>;
 
 #[derive(Debug)]
 pub struct App {
@@ -38,9 +36,7 @@ impl Default for App {
 }
 
 impl App {
-    pub async fn run(&mut self) {
-        let mut terminal = App::init().unwrap();
-
+    pub async fn run(&mut self, mut terminal: Terminal<CrosstermBackend<Stdout>>) {
         let (ws_stream, response) = connect_async("ws://localhost:8080/chat")
         .await
         .expect("Failed to connect");
@@ -68,8 +64,6 @@ impl App {
                 _ = self.handle_events() => {}
             }
         }
-
-        App::restore(&mut terminal);
     }
 
     fn handle_render(&self, frame: &mut Frame) {
@@ -78,23 +72,25 @@ impl App {
 
     async fn handle_events(&mut self) -> io::Result<bool> {
         if event::poll(Duration::from_millis(100))? {
-            match event::read().unwrap() {
-                Event::Key(key_event) => {
-                    if key_event.kind == KeyEventKind::Press {
-                        self.on_key_press(key_event);
-                    }
-                }
-                Event::Mouse(mouse_event) => match mouse_event.kind {
-                    MouseEventKind::ScrollUp => {
-                        self.chat.on_scroll_up();
-                    }
-                    MouseEventKind::ScrollDown => {
-                        self.chat.on_scroll_down();
-                    }
-                    _ => {}
-                },
-                _ => {}
-            }
+            let event = event::read().unwrap();
+            self.chat.handle_events(event);
+            // match event::read().unwrap() {
+            //     Event::Key(key_event) => {
+            //         if key_event.kind == KeyEventKind::Press {
+            //             self.on_key_press(key_event);
+            //         }
+            //     }
+            //     Event::Mouse(mouse_event) => match mouse_event.kind {
+            //         MouseEventKind::ScrollUp => {
+            //             self.chat.on_scroll_up();
+            //         }
+            //         MouseEventKind::ScrollDown => {
+            //             self.chat.on_scroll_down();
+            //         }
+            //         _ => {}
+            //     },
+            //     _ => {}
+            // }
 
             return Ok(true);
         } else {
@@ -111,19 +107,5 @@ impl App {
 
     fn exit(&mut self) {
         self.running = false;
-    }
-
-    fn init() -> Result<Tui, std::io::Error> {
-        stdout().execute(EnterAlternateScreen).unwrap();
-        stdout().execute(EnableMouseCapture).unwrap();
-        enable_raw_mode().expect("Failed to enable raw mode");
-
-        Terminal::new(CrosstermBackend::new(stdout()))
-    }
-
-    fn restore(terminal: &mut Tui) {
-        stdout().execute(LeaveAlternateScreen).unwrap();
-        stdout().execute(DisableMouseCapture).unwrap();
-        disable_raw_mode().expect("Failed to disable raw mode");
     }
 }

@@ -1,5 +1,6 @@
 use std::collections::HashSet;
 
+use crossterm::event;
 use ratatui::{
     layout::{Constraint, Direction, Layout, Rect},
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
@@ -23,6 +24,10 @@ impl Default for Chat {
 }
 
 impl Chat {
+    pub fn handle_events(&self, event: event::Event) {
+
+    }
+
     pub fn on_scroll_up(&mut self) {
         if self.chat_message_state.vertical_scroll > 0 {
             self.chat_message_state.vertical_scroll -= 1;
@@ -50,8 +55,6 @@ impl Widget for &Chat {
             .block(Block::new().borders(Borders::ALL))
             .render(bar, buf);
 
-        let mut foo = self.chat_message_state.clone();
-
-        ChatMessages::default().render(content, buf, &mut foo);
+        ChatMessages::default().render(content, buf, &mut self.chat_message_state.clone());
     }
 }
