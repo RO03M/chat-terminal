@@ -3,12 +3,8 @@ use std::{
     time::Duration,
 };
 
-use crate::chat::chat::Chat;
-use crossterm::{
-    event::{
-        self, KeyCode, KeyEvent,
-    },
-};
+use crate::{chat::chat::Chat, events::EventHandler};
+use crossterm::event::{self, KeyCode, KeyEvent};
 use futures_util::StreamExt;
 use ratatui::{
     backend::CrosstermBackend,
@@ -35,8 +31,8 @@ impl Default for App {
 impl App {
     pub async fn run(&mut self, mut terminal: Terminal<CrosstermBackend<Stdout>>) {
         let (ws_stream, _response) = connect_async("ws://localhost:8080/chat")
-        .await
-        .expect("Failed to connect");
+            .await
+            .expect("Failed to connect");
 
         let (_write, mut read) = ws_stream.split();
 
@@ -48,12 +44,11 @@ impl App {
                 .expect("Failed to render");
             tokio::select! {
                 received = read.next() => {
-                    // println!("{:?}", received.unwrap());
                     let received = received.unwrap();
                     let message = received.unwrap();
                     match message {
                         Message::Text(text) => {
-                            self.chat.add_message(text);
+                            self.chat.message_state.add_message(text);
                         },
                         _ => {}
                     }
@@ -70,24 +65,17 @@ impl App {
     async fn handle_events(&mut self) -> io::Result<bool> {
         if event::poll(Duration::from_millis(100))? {
             let event = event::read().unwrap();
-            self.chat.handle_events(event);
-            // match event::read().unwrap() {
-            //     Event::Key(key_event) => {
-            //         if key_event.kind == KeyEventKind::Press {
-            //             self.on_key_press(key_event);
-            //         }
-            //     }
-            //     Event::Mouse(mouse_event) => match mouse_event.kind {
-            //         MouseEventKind::ScrollUp => {
-            //             self.chat.on_scroll_up();
-            //         }
-            //         MouseEventKind::ScrollDown => {
-            //             self.chat.on_scroll_down();
-            //         }
-            //         _ => {}
-            //     },
-            //     _ => {}
-            // }
+            match event {
+                event::Event::Key(key_event) => {
+                    if key_event.kind == event::KeyEventKind::Press {
+                        self.on_key_press(key_event);
+                    }
+                }
+                event::Event::Mouse(mouse_event) => {
+                    self.chat.on_scroll(mouse_event, mouse_event.kind);
+                }
+                _ => ()
+            }
 
             Ok(true)
         } else {
@@ -96,9 +84,8 @@ impl App {
     }
 
     fn on_key_press(&mut self, key_event: KeyEvent) {
-        match key_event.code {
-            KeyCode::Char('q') => self.exit(),
-            _ => {}
+        if key_event.code == KeyCode::Char('q') {
+            self.exit();
         }
     }
 

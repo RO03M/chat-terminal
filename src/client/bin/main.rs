@@ -10,6 +10,7 @@ use ratatui::{backend::CrosstermBackend, Terminal};
 use crate::app::App;
 mod app;
 mod chat;
+mod events;
 
 fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, std::io::Error> {
     stdout().execute(EnterAlternateScreen).unwrap();

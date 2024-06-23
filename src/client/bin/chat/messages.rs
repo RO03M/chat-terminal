@@ -17,6 +17,12 @@ pub struct ChatMessagesState {
     pub vertical_scroll: usize,
 }
 
+impl ChatMessagesState {
+    pub fn add_message(&mut self, message: String) {
+        self.messages.push(message);
+    }
+}
+
 impl StatefulWidget for ChatMessages {
     type State = ChatMessagesState;
     fn render(
