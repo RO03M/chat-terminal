@@ -1,15 +1,11 @@
-use std::{
-    io::{stdout, Stdout},
-    thread,
-    time::Duration,
-};
+use std::io::{stdout, Stdout};
 
 use crossterm::{
-    event::{self, DisableMouseCapture, EnableMouseCapture, KeyCode, KeyEventKind},
+    event::{DisableMouseCapture, EnableMouseCapture},
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
-use ratatui::{backend::CrosstermBackend, style::Stylize, widgets::Paragraph, Terminal};
+use ratatui::{backend::CrosstermBackend, Terminal};
 
 use crate::app::App;
 mod app;

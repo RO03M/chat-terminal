@@ -1,16 +1,13 @@
 use std::{
-    io::{self, stdout, Stdout},
+    io::{self, Stdout},
     time::Duration,
 };
 
 use crate::chat::chat::Chat;
 use crossterm::{
     event::{
-        self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEvent,
-        KeyEventKind, MouseEventKind,
+        self, KeyCode, KeyEvent,
     },
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
-    ExecutableCommand,
 };
 use futures_util::StreamExt;
 use ratatui::{
@@ -37,11 +34,11 @@ impl Default for App {
 
 impl App {
     pub async fn run(&mut self, mut terminal: Terminal<CrosstermBackend<Stdout>>) {
-        let (ws_stream, response) = connect_async("ws://localhost:8080/chat")
+        let (ws_stream, _response) = connect_async("ws://localhost:8080/chat")
         .await
         .expect("Failed to connect");
 
-        let (mut write, mut read) = ws_stream.split();
+        let (_write, mut read) = ws_stream.split();
 
         while self.running {
             terminal
@@ -92,9 +89,9 @@ impl App {
             //     _ => {}
             // }
 
-            return Ok(true);
+            Ok(true)
         } else {
-            return Ok(false);
+            Ok(false)
         }
     }
 

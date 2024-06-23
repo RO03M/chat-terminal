@@ -1,4 +1,4 @@
-use crossterm::event::{self, Event, MouseEventKind};
+
 use ratatui::{
     layout::{Constraint, Layout, Margin},
     text::Line,

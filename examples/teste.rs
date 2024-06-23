@@ -15,7 +15,7 @@ async fn main() {
         .await
         .expect("Failed to connect");
 
-    let (mut write, read) = ws_stream.split();
+    let (_write, read) = ws_stream.split();
 
     println!("{}", response.status());
 

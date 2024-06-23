@@ -1,4 +1,4 @@
-use std::time::Instant;
+
 
 use actix::{Actor, ActorContext, Addr, AsyncContext, Handler, Running, StreamHandler};
 use actix_web_actors::ws;
@@ -44,7 +44,7 @@ impl Actor for WsConnection {
         })
     }
 
-    fn stopping(&mut self, ctx: &mut Self::Context) -> actix::Running {
+    fn stopping(&mut self, _ctx: &mut Self::Context) -> actix::Running {
         self.lobby_addr.do_send(Disconnect {
             session_id: self.id,
         });
@@ -56,7 +56,7 @@ impl Actor for WsConnection {
 impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsConnection {
     fn handle(&mut self, item: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
         match item {
-            Ok(ws::Message::Close(reason)) => {
+            Ok(ws::Message::Close(_reason)) => {
                 println!("Session {} closed", self.id);
                 ctx.close(None);
                 ctx.stop();

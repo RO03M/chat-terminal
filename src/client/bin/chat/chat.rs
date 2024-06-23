@@ -2,29 +2,23 @@ use std::collections::HashSet;
 
 use crossterm::event;
 use ratatui::{
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Layout},
     widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
 use super::messages::{ChatMessages, ChatMessagesState};
 
 #[derive(Debug)]
+#[derive(Default)]
 pub struct Chat {
     messages: HashSet<String>,
     chat_message_state: ChatMessagesState,
 }
 
-impl Default for Chat {
-    fn default() -> Self {
-        Self {
-            messages: HashSet::new(),
-            chat_message_state: ChatMessagesState::default(),
-        }
-    }
-}
+
 
 impl Chat {
-    pub fn handle_events(&self, event: event::Event) {
+    pub fn handle_events(&self, _event: event::Event) {
 
     }
 
@@ -55,6 +49,6 @@ impl Widget for &Chat {
             .block(Block::new().borders(Borders::ALL))
             .render(bar, buf);
 
-        ChatMessages::default().render(content, buf, &mut self.chat_message_state.clone());
+        ChatMessages.render(content, buf, &mut self.chat_message_state.clone());
     }
 }
