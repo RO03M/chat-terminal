@@ -8,6 +8,8 @@ use ratatui::{
     },
 };
 
+use super::text_field::TextField;
+
 #[derive(Debug, Default)]
 pub struct ChatMessages;
 
@@ -59,8 +61,6 @@ impl StatefulWidget for ChatMessages {
             .scroll((state.vertical_scroll as u16, 0))
             .render(list_area, buf);
 
-        Paragraph::new("niput?")
-            .block(Block::new().title("Type your message").borders(Borders::ALL))
-            .render(input_area, buf);
+        TextField::default().render(input_area, buf);
     }
 }

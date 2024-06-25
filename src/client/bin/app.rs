@@ -84,7 +84,7 @@ impl App {
     }
 
     fn on_key_press(&mut self, key_event: KeyEvent) {
-        if key_event.code == KeyCode::Char('q') {
+        if key_event.code == KeyCode::Esc {
             self.exit();
         }
     }
