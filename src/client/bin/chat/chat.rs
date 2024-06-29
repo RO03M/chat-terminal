@@ -1,7 +1,7 @@
 use crossterm::event;
 use ratatui::{
-    layout::{Constraint, Layout},
-    widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
+    layout::{Constraint, Layout, Rect},
+    widgets::{Block, Borders, Paragraph, StatefulWidget, Widget}, Frame,
 };
 
 use crate::events::EventHandler;
@@ -24,13 +24,27 @@ impl Chat {
     pub fn on_scroll_down(&mut self) {
         self.message_state.vertical_scroll += 1;
     }
+
+    pub fn ui(&self, mut frame: &mut Frame) {
+        let layout = Layout::horizontal([Constraint::Percentage(20), Constraint::Fill(1)]);
+        let [bar, content] = layout.areas(frame.size());
+
+        frame.render_widget(
+            Paragraph::new("sidebar")
+                .block(Block::new().borders(Borders::ALL)),
+            bar
+        );
+            // .render(bar, buf);
+
+        ChatMessages.render(content, frame.buffer_mut(), &mut self.message_state.clone());
+    }
 }
 
 impl EventHandler for Chat {
     fn on_scroll(&mut self, _: event::MouseEvent, kind: event::MouseEventKind) {
         match kind {
             event::MouseEventKind::ScrollUp => self.on_scroll_up(),
-            event::MouseEventKind::ScrollDown => self.on_scroll_up(),
+            event::MouseEventKind::ScrollDown => self.on_scroll_down(),
             _ => ()
         }
     }

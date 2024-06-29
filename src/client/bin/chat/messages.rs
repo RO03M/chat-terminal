@@ -8,7 +8,7 @@ use ratatui::{
     },
 };
 
-use super::text_field::TextField;
+use super::text_field::{TextField, TextFieldState};
 
 #[derive(Debug, Default)]
 pub struct ChatMessages;
@@ -17,6 +17,7 @@ pub struct ChatMessages;
 pub struct ChatMessagesState {
     pub messages: Vec<String>,
     pub vertical_scroll: usize,
+    pub textfield_state: TextFieldState
 }
 
 impl ChatMessagesState {
@@ -56,11 +57,21 @@ impl StatefulWidget for ChatMessages {
             .iter()
             .map(|message| Line::from(message.to_string()))
             .collect();
+
         Paragraph::new(messages)
             .block(Block::new().borders(Borders::ALL))
             .scroll((state.vertical_scroll as u16, 0))
             .render(list_area, buf);
 
-        TextField::default().render(input_area, buf);
+        // let mut textarea = TextArea::default();
+        // textarea.set_block(
+        //     Block::default()
+        //         .borders(Borders::ALL)
+        //         .title("Test")
+        // );
+
+        // textarea.widget().render(input_area, buf);
+
+        TextField::default().render(input_area, buf, &mut state.textfield_state);
     }
 }

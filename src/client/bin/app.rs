@@ -1,22 +1,24 @@
 use std::{
     io::{self, Stdout},
-    time::Duration,
+    time::Duration, vec,
 };
 
 use crate::{chat::chat::Chat, events::EventHandler};
 use crossterm::event::{self, KeyCode, KeyEvent};
-use futures_util::StreamExt;
+use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use ratatui::{
     backend::CrosstermBackend,
     Frame, Terminal,
 };
-use tokio_tungstenite::connect_async;
+use tokio::net::TcpStream;
+use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tungstenite::Message;
 
 #[derive(Debug)]
 pub struct App {
     chat: Chat,
     running: bool,
+    message_queue: Vec<String>
 }
 
 impl Default for App {
@@ -24,6 +26,7 @@ impl Default for App {
         Self {
             chat: Chat::default(),
             running: true,
+            message_queue: vec!["from queue!".into()]
         }
     }
 }
@@ -34,7 +37,7 @@ impl App {
             .await
             .expect("Failed to connect");
 
-        let (_write, mut read) = ws_stream.split();
+        let (mut write, mut read) = ws_stream.split();
 
         while self.running {
             terminal
@@ -42,6 +45,7 @@ impl App {
                     self.handle_render(frame);
                 })
                 .expect("Failed to render");
+
             tokio::select! {
                 received = read.next() => {
                     let received = received.unwrap();
@@ -53,14 +57,28 @@ impl App {
                         _ => {}
                     }
                 }
-                _ = self.handle_events() => {}
+                _ = self.handle_events() => {
+                    self.handle_queue(&mut write).await;
+                }
             }
         }
     }
 
     fn handle_render(&self, frame: &mut Frame) {
-        frame.render_widget(&self.chat, frame.size());
+        // frame.render_widget(&self.chat, frame.size());
+        self.chat.ui(frame);
     }
+
+    async fn handle_queue(&mut self, write: &mut SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>) {
+        let first_message = self.message_queue.pop();
+
+        match first_message {
+            Some(message) => {
+                let _ = write.send(Message::Text(message)).await;
+            }
+            None => {}
+        }
+    }    
 
     async fn handle_events(&mut self) -> io::Result<bool> {
         if event::poll(Duration::from_millis(100))? {
@@ -84,9 +102,26 @@ impl App {
     }
 
     fn on_key_press(&mut self, key_event: KeyEvent) {
-        if key_event.code == KeyCode::Esc {
-            self.exit();
+        match key_event.code {
+            KeyCode::Esc => {
+                self.exit();
+            }
+            KeyCode::Char(c) => {
+                self.chat.message_state.textfield_state.value += &c.to_string();
+            }
+            KeyCode::Enter => {
+                self.message_queue.push(self.chat.message_state.textfield_state.value.clone());
+                self.chat.message_state.textfield_state.value = "".into();
+            }
+            KeyCode::Backspace => {
+                let mut input_value = self.chat.message_state.textfield_state.value.clone().to_string();
+                input_value.pop();
+                
+                self.chat.message_state.textfield_state.value = input_value;
+            }
+            _ => {}
         }
+        // self.chat.message_state.textfield_state.value += key_event.state
     }
 
     fn exit(&mut self) {
