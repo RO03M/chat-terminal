@@ -8,37 +8,64 @@ use ratatui::{
     },
 };
 
-use super::text_field::{TextField, TextFieldState};
+use crate::events::EventHandler;
 
-#[derive(Debug, Default)]
-pub struct ChatMessages;
+use super::text_field::TextField;
 
-#[derive(Default, Debug, Clone)]
-pub struct ChatMessagesState {
+#[derive(Debug, Clone)]
+pub struct ChatMessages {
+    pub textfield_widget: TextField,
     pub messages: Vec<String>,
-    pub vertical_scroll: usize,
-    pub textfield_state: TextFieldState
+    pub vertical_scroll: usize
 }
 
-impl ChatMessagesState {
-    pub fn add_message(&mut self, message: String) {
-        self.messages.push(message);
+impl Default for ChatMessages {
+    fn default() -> Self {
+        let mut default = Self {
+            messages: vec![],
+            vertical_scroll: 0,
+            textfield_widget: TextField::default()
+        };
+
+        default.textfield_widget.focus();
+
+        default
     }
 }
 
-impl StatefulWidget for ChatMessages {
-    type State = ChatMessagesState;
-    fn render(
-        self,
-        area: ratatui::prelude::Rect,
-        buf: &mut ratatui::prelude::Buffer,
-        state: &mut Self::State,
-    ) where
-        Self: Sized,
-    {
+impl ChatMessages {
+    pub fn on_scroll_up(&mut self) {
+        if self.vertical_scroll > 0 {
+            self.vertical_scroll -= 1;
+        }
+    }
+
+    pub fn on_scroll_down(&mut self) {
+        self.vertical_scroll += 1;
+    }
+}
+
+impl EventHandler for ChatMessages {
+    fn on_event(&mut self, event: crossterm::event::Event) {
+        self.textfield_widget.on_event(event.clone());
+        match event {
+            crossterm::event::Event::Mouse(mouse_event) => {
+                match mouse_event.kind {
+                    crossterm::event::MouseEventKind::ScrollUp => self.on_scroll_up(),
+                    crossterm::event::MouseEventKind::ScrollDown => self.on_scroll_down(),
+                    _ => ()
+                }
+            },
+            _ => ()
+        }
+    }
+}
+
+impl Widget for &ChatMessages {
+    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
         let scrollbar = Scrollbar::new(ScrollbarOrientation::VerticalRight);
         let mut scrollbar_state =
-            ScrollbarState::new(state.messages.len()).position(state.vertical_scroll);
+            ScrollbarState::new(self.messages.len()).position(self.vertical_scroll);
 
         scrollbar.render(
             area.inner(&Margin {
@@ -52,7 +79,7 @@ impl StatefulWidget for ChatMessages {
         let layout = Layout::vertical([Constraint::Fill(1), Constraint::Percentage(10)]);
         let [list_area, input_area] = layout.areas(area);
 
-        let messages: Vec<Line> = state
+        let messages: Vec<Line> = self
             .messages
             .iter()
             .map(|message| Line::from(message.to_string()))
@@ -60,18 +87,9 @@ impl StatefulWidget for ChatMessages {
 
         Paragraph::new(messages)
             .block(Block::new().borders(Borders::ALL))
-            .scroll((state.vertical_scroll as u16, 0))
+            .scroll((self.vertical_scroll as u16, 0))
             .render(list_area, buf);
 
-        // let mut textarea = TextArea::default();
-        // textarea.set_block(
-        //     Block::default()
-        //         .borders(Borders::ALL)
-        //         .title("Test")
-        // );
-
-        // textarea.widget().render(input_area, buf);
-
-        TextField::default().render(input_area, buf, &mut state.textfield_state);
+        self.textfield_widget.render(input_area, buf);
     }
 }

@@ -18,7 +18,8 @@ use tungstenite::Message;
 pub struct App {
     chat: Chat,
     running: bool,
-    message_queue: Vec<String>
+    message_queue: Vec<String>,
+    address: String,
 }
 
 impl Default for App {
@@ -26,14 +27,15 @@ impl Default for App {
         Self {
             chat: Chat::default(),
             running: true,
-            message_queue: vec!["from queue!".into()]
+            message_queue: vec!["from queue!".into()],
+            address: "localhost:8080".into()
         }
     }
 }
 
 impl App {
     pub async fn run(&mut self, mut terminal: Terminal<CrosstermBackend<Stdout>>) {
-        let (ws_stream, _response) = connect_async("ws://localhost:8080/chat")
+        let (ws_stream, _response) = connect_async(format!("ws://{}/chat", self.address))
             .await
             .expect("Failed to connect");
 
@@ -52,7 +54,7 @@ impl App {
                     let message = received.unwrap();
                     match message {
                         Message::Text(text) => {
-                            self.chat.message_state.add_message(text);
+                            self.chat.messages_widget.messages.push(text);
                         },
                         _ => {}
                     }
@@ -65,7 +67,6 @@ impl App {
     }
 
     fn handle_render(&self, frame: &mut Frame) {
-        // frame.render_widget(&self.chat, frame.size());
         self.chat.ui(frame);
     }
 
@@ -78,19 +79,18 @@ impl App {
             }
             None => {}
         }
-    }    
+    }
 
     async fn handle_events(&mut self) -> io::Result<bool> {
         if event::poll(Duration::from_millis(100))? {
             let event = event::read().unwrap();
+            self.chat.on_event(event.clone());
             match event {
                 event::Event::Key(key_event) => {
+                    println!("{:?}", key_event);
                     if key_event.kind == event::KeyEventKind::Press {
                         self.on_key_press(key_event);
                     }
-                }
-                event::Event::Mouse(mouse_event) => {
-                    self.chat.on_scroll(mouse_event, mouse_event.kind);
                 }
                 _ => ()
             }
@@ -106,22 +106,13 @@ impl App {
             KeyCode::Esc => {
                 self.exit();
             }
-            KeyCode::Char(c) => {
-                self.chat.message_state.textfield_state.value += &c.to_string();
-            }
             KeyCode::Enter => {
-                self.message_queue.push(self.chat.message_state.textfield_state.value.clone());
-                self.chat.message_state.textfield_state.value = "".into();
-            }
-            KeyCode::Backspace => {
-                let mut input_value = self.chat.message_state.textfield_state.value.clone().to_string();
-                input_value.pop();
-                
-                self.chat.message_state.textfield_state.value = input_value;
+                self.message_queue.push(self.chat.messages_widget.textfield_widget.value.clone());
+                self.chat.messages_widget.textfield_widget.clear();
             }
             _ => {}
         }
-        // self.chat.message_state.textfield_state.value += key_event.state
+
     }
 
     fn exit(&mut self) {
