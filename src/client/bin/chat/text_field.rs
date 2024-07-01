@@ -15,6 +15,10 @@ impl TextField {
         self.value = "".into();
     }
 
+    pub fn is_focused(&self) -> bool {
+        self.focused
+    }
+
     pub fn focus(&mut self) {
         self.focused = true;
     }

@@ -15,11 +15,18 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tungstenite::Message;
 
 #[derive(Debug)]
+pub enum AppModes {
+    EDITING,
+    NORMAL
+}
+
+#[derive(Debug)]
 pub struct App {
     chat: Chat,
     running: bool,
     message_queue: Vec<String>,
     address: String,
+    mode: AppModes
 }
 
 impl Default for App {
@@ -28,7 +35,8 @@ impl Default for App {
             chat: Chat::default(),
             running: true,
             message_queue: vec!["from queue!".into()],
-            address: "localhost:8080".into()
+            address: "localhost:8080".into(),
+            mode: AppModes::NORMAL
         }
     }
 }
@@ -44,7 +52,7 @@ impl App {
         while self.running {
             terminal
                 .draw(|frame| {
-                    self.handle_render(frame);
+                    self.update(frame);
                 })
                 .expect("Failed to render");
 
@@ -66,8 +74,13 @@ impl App {
         }
     }
 
-    fn handle_render(&self, frame: &mut Frame) {
+    fn update(&mut self, frame: &mut Frame) {
         self.chat.ui(frame);
+
+        match self.mode {
+            AppModes::EDITING => self.chat.messages_widget.textfield_widget.focus(),
+            AppModes::NORMAL => self.chat.messages_widget.textfield_widget.unfocus()
+        };
     }
 
     async fn handle_queue(&mut self, write: &mut SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>) {
@@ -87,7 +100,6 @@ impl App {
             self.chat.on_event(event.clone());
             match event {
                 event::Event::Key(key_event) => {
-                    println!("{:?}", key_event);
                     if key_event.kind == event::KeyEventKind::Press {
                         self.on_key_press(key_event);
                     }
@@ -104,7 +116,22 @@ impl App {
     fn on_key_press(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Esc => {
-                self.exit();
+                match self.mode {
+                    AppModes::EDITING => {
+                        self.mode = AppModes::NORMAL;
+                    }
+                    AppModes::NORMAL => {
+                        self.exit();
+                    }
+                }
+            }
+            KeyCode::Char('e') => {
+                match self.mode {
+                    AppModes::NORMAL => {
+                        self.mode = AppModes::EDITING;
+                    }
+                    _ => ()
+                }
             }
             KeyCode::Enter => {
                 self.message_queue.push(self.chat.messages_widget.textfield_widget.value.clone());
