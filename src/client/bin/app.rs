@@ -6,18 +6,28 @@ use std::{
 use crate::{chat::chat::Chat, events::EventHandler};
 use crossterm::event::{self, KeyCode, KeyEvent};
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
-use ratatui::{
-    backend::CrosstermBackend,
-    Frame, Terminal,
-};
+use ratatui::{prelude::*, widgets::{Block, Borders, Clear}};
+use serde::{Deserialize, Serialize};
+use serde_json::json;
 use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tungstenite::Message;
 
 #[derive(Debug)]
 pub enum AppModes {
-    EDITING,
-    NORMAL
+    Editing,
+    Normal
+}
+
+#[derive(Debug, Default)]
+pub struct UserData {
+    name: String
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ServerMessage {
+    author: String,
+    message: String
 }
 
 #[derive(Debug)]
@@ -26,7 +36,8 @@ pub struct App {
     running: bool,
     message_queue: Vec<String>,
     address: String,
-    mode: AppModes
+    mode: AppModes,
+    user_data: UserData
 }
 
 impl Default for App {
@@ -36,7 +47,10 @@ impl Default for App {
             running: true,
             message_queue: vec!["from queue!".into()],
             address: "localhost:8080".into(),
-            mode: AppModes::NORMAL
+            mode: AppModes::Normal,
+            user_data: UserData {
+               name: "romera".into()
+            }
         }
     }
 }
@@ -61,8 +75,16 @@ impl App {
                     let received = received.unwrap();
                     let message = received.unwrap();
                     match message {
-                        Message::Text(text) => {
-                            self.chat.messages_widget.messages.push(text);
+                        Message::Text(message) => {
+                            let message: Result<ServerMessage, serde_json::Error> = serde_json::from_str(&message);
+                            match message {
+                                Ok(decoded_message) => {
+                                    self.chat.messages_widget.messages.push(format!("<{}> {}", decoded_message.author, decoded_message.message));
+                                },
+                                Err(_) => {
+                                    self.chat.messages_widget.messages.push("Failed to receive message, this is a fallback".into());
+                                },
+                            }
                         },
                         _ => {}
                     }
@@ -76,10 +98,10 @@ impl App {
 
     fn update(&mut self, frame: &mut Frame) {
         self.chat.ui(frame);
-
+        
         match self.mode {
-            AppModes::EDITING => self.chat.messages_widget.textfield_widget.focus(),
-            AppModes::NORMAL => self.chat.messages_widget.textfield_widget.unfocus()
+            AppModes::Editing => self.chat.messages_widget.textfield_widget.focus(),
+            AppModes::Normal => self.chat.messages_widget.textfield_widget.unfocus()
         };
     }
 
@@ -88,7 +110,11 @@ impl App {
 
         match first_message {
             Some(message) => {
-                let _ = write.send(Message::Text(message)).await;
+                let message = json!({
+                    "author": self.user_data.name,
+                    "message": message
+                });
+                let _ = write.send(Message::Text(message.to_string())).await;
             }
             None => {}
         }
@@ -117,18 +143,18 @@ impl App {
         match key_event.code {
             KeyCode::Esc => {
                 match self.mode {
-                    AppModes::EDITING => {
-                        self.mode = AppModes::NORMAL;
+                    AppModes::Editing => {
+                        self.mode = AppModes::Normal;
                     }
-                    AppModes::NORMAL => {
+                    AppModes::Normal => {
                         self.exit();
                     }
                 }
             }
             KeyCode::Char('e') => {
                 match self.mode {
-                    AppModes::NORMAL => {
-                        self.mode = AppModes::EDITING;
+                    AppModes::Normal => {
+                        self.mode = AppModes::Editing;
                     }
                     _ => ()
                 }

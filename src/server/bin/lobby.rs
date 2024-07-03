@@ -21,8 +21,6 @@ impl Lobby {
     }
 }
 
-
-
 impl Actor for Lobby {
     type Context = Context<Self>;
 }
