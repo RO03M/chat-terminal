@@ -33,3 +33,17 @@ impl EventHandler for Chat {
         self.messages_widget.on_event(_event.clone());
     }
 }
+
+impl Widget for &Chat {
+    fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
+        where
+            Self: Sized {
+        let layout = Layout::horizontal([Constraint::Percentage(20), Constraint::Fill(1)]);
+        let [bar, content] = layout.areas(area);
+
+        Paragraph::new("sidebar")
+            .block(Block::new().borders(Borders::ALL)).render(bar, buf);
+
+        self.messages_widget.clone().render(content, buf);
+    }
+}

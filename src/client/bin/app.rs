@@ -1,6 +1,5 @@
 use std::{
-    io::{self, Stdout},
-    time::Duration, vec,
+    any::Any, collections::HashMap, io::{self, Stdout}, time::Duration, vec
 };
 
 use crate::{chat::chat::Chat, events::EventHandler};
@@ -14,9 +13,16 @@ use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tungstenite::Message;
 
 #[derive(Debug)]
-pub enum AppModes {
+pub enum AppState {
     Editing,
     Normal
+}
+
+#[derive(Debug)]
+pub enum AppPages {
+    Email,
+    ServerAddress,
+    Chat
 }
 
 #[derive(Debug, Default)]
@@ -30,13 +36,13 @@ pub struct ServerMessage {
     message: String
 }
 
-#[derive(Debug)]
 pub struct App {
     chat: Chat,
+    pages: Vec<Box<dyn Widget>>,
     running: bool,
     message_queue: Vec<String>,
     address: String,
-    mode: AppModes,
+    app_state: AppState,
     user_data: UserData
 }
 
@@ -44,10 +50,14 @@ impl Default for App {
     fn default() -> Self {
         Self {
             chat: Chat::default(),
+            // pages: HashMap::from([
+            //     ("AppPages::Chat".into(), Box::new(Chat::default()))
+            // ]),
+            pages: vec![Box::new(Chat::default())],
             running: true,
             message_queue: vec!["from queue!".into()],
             address: "localhost:8080".into(),
-            mode: AppModes::Normal,
+            app_state: AppState::Normal,
             user_data: UserData {
                name: "romera".into()
             }
@@ -97,11 +107,11 @@ impl App {
     }
 
     fn update(&mut self, frame: &mut Frame) {
-        self.chat.ui(frame);
+        frame.render_widget(&self.chat, frame.size());
         
-        match self.mode {
-            AppModes::Editing => self.chat.messages_widget.textfield_widget.focus(),
-            AppModes::Normal => self.chat.messages_widget.textfield_widget.unfocus()
+        match self.app_state {
+            AppState::Editing => self.chat.messages_widget.textfield_widget.focus(),
+            AppState::Normal => self.chat.messages_widget.textfield_widget.unfocus()
         };
     }
 
@@ -142,19 +152,19 @@ impl App {
     fn on_key_press(&mut self, key_event: KeyEvent) {
         match key_event.code {
             KeyCode::Esc => {
-                match self.mode {
-                    AppModes::Editing => {
-                        self.mode = AppModes::Normal;
+                match self.app_state {
+                    AppState::Editing => {
+                        self.app_state = AppState::Normal;
                     }
-                    AppModes::Normal => {
+                    AppState::Normal => {
                         self.exit();
                     }
                 }
             }
             KeyCode::Char('e') => {
-                match self.mode {
-                    AppModes::Normal => {
-                        self.mode = AppModes::Editing;
+                match self.app_state {
+                    AppState::Normal => {
+                        self.app_state = AppState::Editing;
                     }
                     _ => ()
                 }
