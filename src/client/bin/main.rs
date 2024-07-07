@@ -13,6 +13,7 @@ mod chat;
 mod events;
 mod dialog_input;
 mod utils;
+mod pages;
 
 fn init_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, std::io::Error> {
     stdout().execute(EnterAlternateScreen).unwrap();

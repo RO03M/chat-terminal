@@ -2,7 +2,7 @@ use std::{
     any::Any, collections::HashMap, io::{self, Stdout}, time::Duration, vec
 };
 
-use crate::{chat::chat::Chat, events::EventHandler};
+use crate::{chat::chat::Chat, dialog_input::DialogInput, events::EventHandler, pages::login_page::LoginPage};
 use crossterm::event::{self, KeyCode, KeyEvent};
 use futures_util::{stream::SplitSink, SinkExt, StreamExt};
 use ratatui::{prelude::*, widgets::{Block, Borders, Clear}};
@@ -18,9 +18,9 @@ pub enum AppState {
     Normal
 }
 
-#[derive(Debug)]
-pub enum AppPages {
-    Email,
+#[derive(Debug, PartialEq)]
+pub enum CurrentPage {
+    Login,
     ServerAddress,
     Chat
 }
@@ -38,26 +38,25 @@ pub struct ServerMessage {
 
 pub struct App {
     chat: Chat,
-    pages: Vec<Box<dyn Widget>>,
+    login_page: LoginPage,
     running: bool,
     message_queue: Vec<String>,
     address: String,
     app_state: AppState,
-    user_data: UserData
+    user_data: UserData,
+    current_page: CurrentPage
 }
 
 impl Default for App {
     fn default() -> Self {
         Self {
             chat: Chat::default(),
-            // pages: HashMap::from([
-            //     ("AppPages::Chat".into(), Box::new(Chat::default()))
-            // ]),
-            pages: vec![Box::new(Chat::default())],
+            login_page: LoginPage::default(),
             running: true,
             message_queue: vec!["from queue!".into()],
             address: "localhost:8080".into(),
             app_state: AppState::Normal,
+            current_page: CurrentPage::Login,
             user_data: UserData {
                name: "romera".into()
             }
@@ -107,12 +106,20 @@ impl App {
     }
 
     fn update(&mut self, frame: &mut Frame) {
-        frame.render_widget(&self.chat, frame.size());
-        
-        match self.app_state {
-            AppState::Editing => self.chat.messages_widget.textfield_widget.focus(),
-            AppState::Normal => self.chat.messages_widget.textfield_widget.unfocus()
-        };
+        match self.current_page {
+            CurrentPage::Login => {
+                frame.render_widget(&self.login_page, frame.size());
+            },
+            CurrentPage::ServerAddress => todo!(),
+            CurrentPage::Chat => {
+                frame.render_widget(&self.chat, frame.size());
+                
+                match self.app_state {
+                    AppState::Editing => self.chat.messages_widget.textfield_widget.focus(),
+                    AppState::Normal => self.chat.messages_widget.textfield_widget.unfocus()
+                };
+            },
+        }
     }
 
     async fn handle_queue(&mut self, write: &mut SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>) {
@@ -133,7 +140,11 @@ impl App {
     async fn handle_events(&mut self) -> io::Result<bool> {
         if event::poll(Duration::from_millis(100))? {
             let event = event::read().unwrap();
-            self.chat.on_event(event.clone());
+            match self.current_page {
+                CurrentPage::Login => self.login_page.on_event(event.clone()),
+                CurrentPage::ServerAddress => todo!(),
+                CurrentPage::Chat => self.chat.on_event(event.clone()),
+            }
             match event {
                 event::Event::Key(key_event) => {
                     if key_event.kind == event::KeyEventKind::Press {
@@ -170,8 +181,20 @@ impl App {
                 }
             }
             KeyCode::Enter => {
-                self.message_queue.push(self.chat.messages_widget.textfield_widget.value.clone());
-                self.chat.messages_widget.textfield_widget.clear();
+                match self.current_page {
+                    CurrentPage::Login => {
+                        self.user_data.name = self.login_page.dialog.textfield_widget.value.clone();
+                        self.login_page.dialog.textfield_widget.clear();
+                        self.current_page = CurrentPage::ServerAddress;
+                    },
+                    CurrentPage::ServerAddress => {
+                        
+                    },
+                    CurrentPage::Chat => {
+                        self.message_queue.push(self.chat.messages_widget.textfield_widget.value.clone());
+                        self.chat.messages_widget.textfield_widget.clear();
+                    },
+                }
             }
             _ => {}
         }
