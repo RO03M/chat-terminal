@@ -32,8 +32,12 @@ impl Page for ServerPage {
 
         match event {
             event::Event::Key(key) => {
-                if key.kind == event::KeyEventKind::Press && key.code == event::KeyCode::Enter {
-                    self.running = false;
+                if key.kind == event::KeyEventKind::Press {
+                    match key.code {
+                        event::KeyCode::Enter => self.running = false,
+                        event::KeyCode::Esc => self.running = false,
+                        _ => ()
+                    }
                 }
             },
             _ => ()

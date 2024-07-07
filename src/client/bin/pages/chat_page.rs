@@ -85,8 +85,8 @@ impl Page for ChatPage {
                     frame.render_widget(&self.chat, frame.size());
                 
                     match self.app_state {
-                        AppState::Editing => self.chat.messages_widget.textfield_widget.focus(),
-                        AppState::Normal => self.chat.messages_widget.textfield_widget.unfocus()
+                        AppState::Editing => self.chat.textfield_widget.focus(),
+                        AppState::Normal => self.chat.textfield_widget.unfocus()
                     };
                 })
                 .expect("Failed to render");
@@ -129,8 +129,8 @@ impl Page for ChatPage {
                     if key.kind == event::KeyEventKind::Press {
                         match key.code {
                             event::KeyCode::Enter => {
-                                self.message_queue.push(self.chat.messages_widget.textfield_widget.value.clone());
-                                self.chat.messages_widget.textfield_widget.clear();
+                                self.message_queue.push(self.chat.textfield_widget.value.clone());
+                                self.chat.textfield_widget.clear();
                             }
                             event::KeyCode::Esc => {
                                 match self.app_state {

@@ -47,10 +47,6 @@ async fn main() {
         Ok(_) => ()
     }
 
-    // let mut app = App::new(username, address);
-
-    // app.run(terminal).await;
-
     restore_terminal();
 
     println!("Bye!");

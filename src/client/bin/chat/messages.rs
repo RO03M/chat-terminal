@@ -1,6 +1,6 @@
 
 use ratatui::{
-    layout::{Constraint, Layout, Margin},
+    layout::Margin,
     text::Line,
     widgets::{
         Block, Borders, Paragraph, Scrollbar, ScrollbarOrientation, ScrollbarState, StatefulWidget,
@@ -10,26 +10,18 @@ use ratatui::{
 
 use crate::events::EventHandler;
 
-use super::text_field::TextField;
-
 #[derive(Debug, Clone)]
 pub struct ChatMessages {
-    pub textfield_widget: TextField,
     pub messages: Vec<String>,
     pub vertical_scroll: usize
 }
 
 impl Default for ChatMessages {
     fn default() -> Self {
-        let mut default = Self {
+        Self {
             messages: vec![],
             vertical_scroll: 0,
-            textfield_widget: TextField::default()
-        };
-
-        default.textfield_widget.focus();
-
-        default
+        }
     }
 }
 
@@ -47,7 +39,6 @@ impl ChatMessages {
 
 impl EventHandler for ChatMessages {
     fn on_event(&mut self, event: crossterm::event::Event) {
-        self.textfield_widget.on_event(event.clone());
         match event {
             crossterm::event::Event::Mouse(mouse_event) => {
                 match mouse_event.kind {
@@ -76,9 +67,6 @@ impl Widget for &ChatMessages {
             &mut scrollbar_state,
         );
 
-        let layout = Layout::vertical([Constraint::Fill(1), Constraint::Percentage(10)]);
-        let [list_area, input_area] = layout.areas(area);
-
         let messages: Vec<Line> = self
             .messages
             .iter()
@@ -88,8 +76,6 @@ impl Widget for &ChatMessages {
         Paragraph::new(messages)
             .block(Block::new().borders(Borders::ALL))
             .scroll((self.vertical_scroll as u16, 0))
-            .render(list_area, buf);
-
-        self.textfield_widget.render(input_area, buf);
+            .render(area, buf);
     }
 }
