@@ -3,7 +3,6 @@ use ratatui::{style::{Color, Style}, widgets::{Block, Borders, Clear, Widget}};
 use crate::{chat::text_field::TextField, events::EventHandler, utils::centered_rect};
 
 pub struct DialogInput {
-    title: String,
     pub textfield_widget: TextField
 }
 
@@ -12,7 +11,17 @@ impl Default for DialogInput {
         let mut textfield_widget = TextField::default();
         textfield_widget.focus();
         Self {
-            title: "".into(),
+            textfield_widget
+        }
+    }
+}
+
+impl DialogInput {
+    pub fn new(label: String, initial_value: String) -> DialogInput {
+        let mut textfield_widget = TextField::default();
+        textfield_widget.label = label;
+        textfield_widget.value = initial_value;
+        DialogInput {
             textfield_widget
         }
     }

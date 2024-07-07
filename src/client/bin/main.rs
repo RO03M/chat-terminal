@@ -7,7 +7,7 @@ use crossterm::{
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
 
-use crate::app::App;
+use crate::pages::{login_page::LoginPage, server_page::ServerPage, chat_page::ChatPage, page::Page};
 mod app;
 mod chat;
 mod events;
@@ -31,10 +31,20 @@ fn restore_terminal() {
 
 #[tokio::main]
 async fn main() {
-    let terminal = init_terminal().expect("Failed to initialize terminal");
-    let mut app = App::default();
+    let mut terminal = init_terminal().expect("Failed to initialize terminal");
 
-    app.run(terminal).await;
+    let mut login_page = LoginPage::default();
+    let username = login_page.run(&mut terminal).await;
+
+    let mut server_page = ServerPage::default();
+    let address = server_page.run(&mut terminal).await;
+
+    let mut chat_page = ChatPage::new(username, address);
+    chat_page.run(&mut terminal).await;
+
+    // let mut app = App::new(username, address);
+
+    // app.run(terminal).await;
 
     restore_terminal();
 
