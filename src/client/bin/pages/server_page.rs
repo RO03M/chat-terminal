@@ -44,7 +44,7 @@ impl Page for ServerPage {
 impl Default for ServerPage {
     fn default() -> Self {
         Self {
-            dialog: DialogInput::new("Address".into(), "localhost:8080".into()),
+            dialog: DialogInput::new("IP Address".into(), "localhost:8080".into()),
             running: true
         }
     }

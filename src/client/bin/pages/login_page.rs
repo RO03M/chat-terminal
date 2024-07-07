@@ -44,7 +44,7 @@ impl Page for LoginPage {
 impl Default for LoginPage {
     fn default() -> Self {
         Self {
-            dialog: DialogInput::default(),
+            dialog: DialogInput::new("Username".into(), "".into()),
             running: true
         }
     }

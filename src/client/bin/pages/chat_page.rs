@@ -9,7 +9,7 @@ use tokio::net::TcpStream;
 use tokio_tungstenite::{connect_async, MaybeTlsStream, WebSocketStream};
 use tungstenite::Message;
 
-use crate::{chat::chat::Chat, events::EventHandler};
+use crate::{chat::chat::Chat, dialog_input::DialogInput, events::EventHandler};
 
 use super::page::Page;
 
@@ -63,11 +63,19 @@ impl ChatPage {
 }
 
 impl Page for ChatPage {
-    type RunResult = ();
+    type RunResult = Result<(), ()>;
     async fn run(&mut self, terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>) -> Self::RunResult {
-        let (ws_stream, _response) = connect_async(format!("ws://{}/chat", self.address))
-            .await
-            .expect(&format!("Failed to connect to {}", self.address));
+        let connection = connect_async(format!("ws://{}/chat", self.address))
+            .await;
+
+        let connection = match connection {
+            Ok(connection) => connection,
+            Err(_) => {
+                return Err(());
+            }
+        };
+
+        let (ws_stream, _response) = connection;
 
         let (mut write, mut read) = ws_stream.split();
 
@@ -107,6 +115,8 @@ impl Page for ChatPage {
                 }
             }
         }
+
+        Ok(())
     }
 
     async fn handle_events(&mut self) {

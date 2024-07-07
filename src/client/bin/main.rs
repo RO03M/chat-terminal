@@ -40,7 +40,12 @@ async fn main() {
     let address = server_page.run(&mut terminal).await;
 
     let mut chat_page = ChatPage::new(username, address);
-    chat_page.run(&mut terminal).await;
+    let success = chat_page.run(&mut terminal).await;
+
+    match success {
+        Err(_) => println!("Failed to connect to the server"),
+        Ok(_) => ()
+    }
 
     // let mut app = App::new(username, address);
 

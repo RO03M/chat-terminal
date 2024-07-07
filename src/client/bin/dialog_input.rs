@@ -21,6 +21,7 @@ impl DialogInput {
         let mut textfield_widget = TextField::default();
         textfield_widget.label = label;
         textfield_widget.value = initial_value;
+        textfield_widget.focus();
         DialogInput {
             textfield_widget
         }
