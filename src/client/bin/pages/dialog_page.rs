@@ -5,12 +5,12 @@ use crate::{dialog_input::DialogInput, events::EventHandler};
 
 use super::page::Page;
 
-pub struct LoginPage {
+pub struct DialogPage {
     pub dialog: DialogInput,
     running: bool
 }
 
-impl Page for LoginPage {
+impl Page for DialogPage {
     type RunResult = String;
     async fn run(&mut self, terminal: &mut ratatui::Terminal<ratatui::backend::CrosstermBackend<std::io::Stdout>>) -> Self::RunResult {
         while self.running {
@@ -45,22 +45,25 @@ impl Page for LoginPage {
     }
 }
 
-impl Default for LoginPage {
-    fn default() -> Self {
+impl DialogPage {
+    pub fn new(label: Option<String>, default_value: Option<String>) -> Self {
+        let label = label.unwrap_or_else(|| "".into());
+        let default_value = default_value.unwrap_or_else(|| "".into());
+        
         Self {
-            dialog: DialogInput::new("Username".into(), "".into()),
+            dialog: DialogInput::new(label, default_value),
             running: true
         }
     }
 }
 
-impl EventHandler for LoginPage {
+impl EventHandler for DialogPage {
     fn on_event(&mut self, _event: event::Event) {
         self.dialog.on_event(_event.clone());
     }
 }
 
-impl Widget for &LoginPage {
+impl Widget for &DialogPage {
     fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer)
         where
             Self: Sized {

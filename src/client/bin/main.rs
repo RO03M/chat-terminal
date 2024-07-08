@@ -5,9 +5,10 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
     ExecutableCommand,
 };
+use pages::dialog_page::DialogPage;
 use ratatui::{backend::CrosstermBackend, Terminal};
 
-use crate::pages::{login_page::LoginPage, server_page::ServerPage, chat_page::ChatPage, page::Page};
+use crate::pages::{chat_page::ChatPage, page::Page};
 mod app;
 mod chat;
 mod events;
@@ -33,10 +34,10 @@ fn restore_terminal() {
 async fn main() {
     let mut terminal = init_terminal().expect("Failed to initialize terminal");
 
-    let mut login_page = LoginPage::default();
+    let mut login_page = DialogPage::new(Some("Username".into()), None);
     let username = login_page.run(&mut terminal).await;
 
-    let mut server_page = ServerPage::default();
+    let mut server_page = DialogPage::new(Some("IP Address".into()), Some("localhost:8080".into()));
     let address = server_page.run(&mut terminal).await;
 
     let mut chat_page = ChatPage::new(username, address);
